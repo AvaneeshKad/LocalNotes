@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.localnotes.ui.editor.CanvasEditorScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,12 +40,11 @@ fun AppNavigation(noteViewModel: NoteViewModel = viewModel()) {
         composable("notes_list") {
             NotesListScreen(
                 viewModel = noteViewModel,
-                onAddNoteClick = { navController.navigate("add_note") }
+                onAddNoteClick = { navController.navigate("canvas_editor") }
             )
         }
-        composable("add_note") {
-            AddNoteScreen(
-                viewModel = noteViewModel,
+        composable("canvas_editor") {
+            CanvasEditorScreen(
                 onBack = { navController.popBackStack() }
             )
         }
