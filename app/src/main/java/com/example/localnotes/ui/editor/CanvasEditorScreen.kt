@@ -18,8 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.example.localnotes.NoteViewModel
 import com.example.localnotes.data.model.Stroke
 import com.example.localnotes.ui.audio.AudioRecorderManager
 import com.example.localnotes.ui.canvas.DrawingCanvas
@@ -51,10 +53,12 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CanvasEditorScreen(
+    viewModel: NoteViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val strokes = remember { mutableStateListOf<Stroke>() }
+    var titleText by remember { mutableStateOf("") }
     var typedText by remember { mutableStateOf("") }
     var isRecording by remember { mutableStateOf(false) }
 
@@ -104,10 +108,23 @@ fun CanvasEditorScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            imageVector = if (isRecording) Icons.Default.Refresh else Icons.Default.PlayArrow,
                             contentDescription = if (isRecording) "Stop Recording" else "Record Audio",
                             tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                    IconButton(
+                        onClick = {
+                            val finalTitle = titleText.ifBlank { "Untitled Note" }
+                            viewModel.addNote(
+                                title = finalTitle,
+                                content = typedText,
+                                strokes = strokes.toList()
+                            )
+                            onBack()
+                        }
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = "Save Note")
                     }
                 }
             )
@@ -119,11 +136,21 @@ fun CanvasEditorScreen(
                 .padding(innerPadding)
         ) {
             OutlinedTextField(
+                value = titleText,
+                onValueChange = { titleText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                placeholder = { Text("Note Title...") },
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = typedText,
                 onValueChange = { typedText = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 placeholder = { Text("Type optional text notes here...") }
             )
 
@@ -163,7 +190,9 @@ fun CanvasEditorScreen(
                 }
 
                 Row(
-                    modifier = Modifier.weight(1f).padding(start = 16.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(

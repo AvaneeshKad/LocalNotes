@@ -45,6 +45,7 @@ fun AppNavigation(noteViewModel: NoteViewModel = viewModel()) {
         }
         composable("canvas_editor") {
             CanvasEditorScreen(
+                viewModel = noteViewModel,
                 onBack = { navController.popBackStack() }
             )
         }
