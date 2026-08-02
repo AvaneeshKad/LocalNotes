@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NotesListScreen(
     viewModel: NoteViewModel,
-    onAddNoteClick: () -> Unit
+    onAddNoteClick: () -> Unit,
+    onNoteClick: (Long) -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -104,7 +105,7 @@ fun NotesListScreen(
                     items(filteredNotes, key = { it.id }) { note ->
                         NoteCard(
                             note = note,
-                            onClick = { }
+                            onClick = { onNoteClick(note.id) }
                         )
                     }
                 }

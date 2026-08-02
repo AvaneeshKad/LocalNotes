@@ -1,9 +1,5 @@
 package com.example.localnotes.ui.editor
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,46 +35,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.localnotes.NoteViewModel
 import com.example.localnotes.data.model.Stroke
-import com.example.localnotes.ui.audio.AudioRecorderManager
 import com.example.localnotes.ui.canvas.DrawingCanvas
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CanvasEditorScreen(
     viewModel: NoteViewModel,
+    noteId: Long? = null,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val strokes = remember { mutableStateListOf<Stroke>() }
-    var titleText by remember { mutableStateOf("") }
-    var typedText by remember { mutableStateOf("") }
-    var isRecording by remember { mutableStateOf(false) }
+    val existingNote = remember(noteId) { noteId?.let { viewModel.getNote(it) } }
+
+    val strokes = remember { mutableStateListOf<Stroke>().apply { existingNote?.strokes?.let { addAll(it) } } }
+    var titleText by remember { mutableStateOf(existingNote?.title ?: "") }
+    var typedText by remember { mutableStateOf(existingNote?.content ?: "") }
 
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableFloatStateOf(6f) }
 
-    val recorderManager = remember { AudioRecorderManager(context) }
-    val audioFile = remember { File(context.cacheDir, "note_audio_${System.currentTimeMillis()}.m4a") }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            recorderManager.startRecording(audioFile)
-            isRecording = true
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Canvas Editor") },
+                title = { Text(if (noteId == null) "New Note" else "Edit Note") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -89,34 +68,9 @@ fun CanvasEditorScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            if (isRecording) {
-                                recorderManager.stopRecording()
-                                isRecording = false
-                            } else {
-                                val hasPermission = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.RECORD_AUDIO
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                if (hasPermission) {
-                                    recorderManager.startRecording(audioFile)
-                                    isRecording = true
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (isRecording) Icons.Default.Refresh else Icons.Default.PlayArrow,
-                            contentDescription = if (isRecording) "Stop Recording" else "Record Audio",
-                            tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    IconButton(
-                        onClick = {
                             val finalTitle = titleText.ifBlank { "Untitled Note" }
-                            viewModel.addNote(
+                            viewModel.saveOrUpdateNote(
+                                id = noteId,
                                 title = finalTitle,
                                 content = typedText,
                                 strokes = strokes.toList()
@@ -217,7 +171,7 @@ fun CanvasEditorScreen(
                     strokes = strokes,
                     selectedColor = selectedColor,
                     selectedWidth = selectedWidth,
-                    currentAudioTimeMs = recorderManager.getElapsedTimeMs()
+                    currentAudioTimeMs = 0L
                 )
             }
         }

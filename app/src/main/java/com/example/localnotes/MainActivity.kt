@@ -10,9 +10,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.localnotes.ui.editor.CanvasEditorScreen
 
 class MainActivity : ComponentActivity() {
@@ -40,12 +42,18 @@ fun AppNavigation(noteViewModel: NoteViewModel = viewModel()) {
         composable("notes_list") {
             NotesListScreen(
                 viewModel = noteViewModel,
-                onAddNoteClick = { navController.navigate("canvas_editor") }
+                onAddNoteClick = { navController.navigate("canvas_editor") },
+                onNoteClick = { noteId -> navController.navigate("canvas_editor?noteId=$noteId") }
             )
         }
-        composable("canvas_editor") {
+        composable(
+            route = "canvas_editor?noteId={noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType; defaultValue = -1L })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getLong("noteId") ?: -1L
             CanvasEditorScreen(
                 viewModel = noteViewModel,
+                noteId = if (noteId == -1L) null else noteId,
                 onBack = { navController.popBackStack() }
             )
         }
