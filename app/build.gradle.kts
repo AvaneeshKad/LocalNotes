@@ -20,6 +20,10 @@ android {
         }
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     defaultConfig {
         applicationId = "com.example.localnotes"
         minSdk = 26
@@ -46,14 +50,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    buildFeatures {
-        compose = true
-    }
-
     lint {
         abortOnError = false
         checkReleaseBuilds = false
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 tasks.withType<KotlinCompile>().configureEach {
@@ -73,6 +77,14 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.json:json:20240303")
+    androidTestImplementation(libs.androidx.room.testing)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

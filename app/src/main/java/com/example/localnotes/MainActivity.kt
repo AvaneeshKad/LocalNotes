@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,7 +36,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation(noteViewModel: NoteViewModel = viewModel()) {
+fun AppNavigation(noteViewModel: NoteViewModel = viewModel(
+    factory = NoteViewModelFactory(
+        (LocalContext.current.applicationContext as LocalNotesApplication).notesRepository
+    )
+)) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "notes_list") {

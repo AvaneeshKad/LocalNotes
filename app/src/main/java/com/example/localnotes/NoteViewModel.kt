@@ -1,43 +1,73 @@
 package com.example.localnotes
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.localnotes.data.model.Note
 import com.example.localnotes.data.model.Stroke
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.localnotes.data.repository.DeleteNoteResult
+import com.example.localnotes.data.repository.NotesRepository
+import com.example.localnotes.data.repository.SaveNoteInput
+import com.example.localnotes.data.repository.SaveNoteResult
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-data class Note(
-    val id: Long = System.currentTimeMillis(),
-    val title: String,
-    val content: String,
-    val strokes: List<Stroke> = emptyList(),
-    val timestamp: Long = System.currentTimeMillis()
-)
+class NoteViewModel(
+    private val repository: NotesRepository
+) : ViewModel() {
 
-class NoteViewModel : ViewModel() {
-    private val _notes = MutableStateFlow<List<Note>>(emptyList())
-    val notes: StateFlow<List<Note>> = _notes.asStateFlow()
+    val notes: StateFlow<List<Note>> = repository.observeNotes()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    var lastSaveError: String? = null
+        private set
 
     fun addNote(title: String, content: String, strokes: List<Stroke> = emptyList()) {
-        saveOrUpdateNote(null, title, content, strokes)
-    }
-
-    fun saveOrUpdateNote(id: Long? = null, title: String, content: String, strokes: List<Stroke> = emptyList()) {
-        if (id != null) {
-            _notes.value = _notes.value.map {
-                if (it.id == id) it.copy(title = title, content = content, strokes = strokes) else it
-            }
-        } else {
-            val newNote = Note(title = title, content = content, strokes = strokes)
-            _notes.value = _notes.value + newNote
+        viewModelScope.launch {
+            saveOrUpdateNote(null, title, content, strokes)
         }
     }
 
-    fun getNote(id: Long): Note? {
-        return _notes.value.find { it.id == id }
+    suspend fun saveOrUpdateNote(
+        id: Long? = null,
+        title: String,
+        content: String,
+        strokes: List<Stroke> = emptyList()
+    ): SaveNoteResult {
+        val result = repository.saveNote(
+            SaveNoteInput(
+                id = id,
+                title = title,
+                content = content,
+                strokes = strokes
+            )
+        )
+        lastSaveError = when (result) {
+            is SaveNoteResult.Success -> null
+            is SaveNoteResult.ValidationError -> result.errors.joinToString("\n")
+            is SaveNoteResult.StorageError -> result.cause.message ?: "Unable to save note."
+        }
+        return result
     }
 
+    fun getNote(id: Long): Note? = notes.value.find { it.id == id }
+
     fun deleteNote(noteId: Long) {
-        _notes.value = _notes.value.filterNot { it.id == noteId }
+        viewModelScope.launch {
+            when (repository.deleteNote(noteId)) {
+                is DeleteNoteResult.Success -> lastSaveError = null
+                is DeleteNoteResult.NotFound -> {
+                    lastSaveError = "Note $noteId was not found."
+                }
+                is DeleteNoteResult.StorageError -> {
+                    lastSaveError = "Unable to delete note."
+                }
+            }
+        }
     }
 }

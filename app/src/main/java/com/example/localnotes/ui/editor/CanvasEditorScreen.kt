@@ -37,8 +37,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.localnotes.NoteViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.localnotes.data.repository.SaveNoteResult
 import com.example.localnotes.data.model.Stroke
+import com.example.localnotes.data.validation.NoteValidator
 import com.example.localnotes.ui.canvas.DrawingCanvas
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +59,7 @@ fun CanvasEditorScreen(
 
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableFloatStateOf(6f) }
+    val saveScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -68,14 +73,17 @@ fun CanvasEditorScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            val finalTitle = titleText.ifBlank { "Untitled Note" }
-                            viewModel.saveOrUpdateNote(
-                                id = noteId,
-                                title = finalTitle,
-                                content = typedText,
-                                strokes = strokes.toList()
-                            )
-                            onBack()
+                            saveScope.launch {
+                                val result = viewModel.saveOrUpdateNote(
+                                    id = noteId,
+                                    title = titleText.ifBlank { NoteValidator.DEFAULT_TITLE },
+                                    content = typedText,
+                                    strokes = strokes.toList()
+                                )
+                                if (result is SaveNoteResult.Success) {
+                                    onBack()
+                                }
+                            }
                         }
                     ) {
                         Icon(Icons.Default.Check, contentDescription = "Save Note")
