@@ -3,6 +3,7 @@ package com.example.localnotes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.localnotes.data.model.Note
+import com.example.localnotes.data.model.NotePage
 import com.example.localnotes.data.model.Stroke
 import com.example.localnotes.data.repository.DeleteNoteResult
 import com.example.localnotes.data.repository.NotesRepository
@@ -27,24 +28,24 @@ class NoteViewModel(
     var lastSaveError: String? = null
         private set
 
-    fun addNote(title: String, content: String, strokes: List<Stroke> = emptyList()) {
+    fun addNote(title: String, pages: List<NotePage>) {
         viewModelScope.launch {
-            saveOrUpdateNote(null, title, content, strokes)
+            saveOrUpdateNote(null, title, pages)
         }
     }
 
     suspend fun saveOrUpdateNote(
         id: Long? = null,
         title: String,
-        content: String,
-        strokes: List<Stroke> = emptyList()
+        pages: List<NotePage> = listOf(NotePage()),
+        timestamp: Long = System.currentTimeMillis()
     ): SaveNoteResult {
         val result = repository.saveNote(
             SaveNoteInput(
                 id = id,
                 title = title,
-                content = content,
-                strokes = strokes
+                pages = pages,
+                timestamp = timestamp
             )
         )
         lastSaveError = when (result) {
@@ -56,6 +57,18 @@ class NoteViewModel(
     }
 
     fun getNote(id: Long): Note? = notes.value.find { it.id == id }
+
+    fun renameNote(noteId: Long, newTitle: String) {
+        viewModelScope.launch {
+            val note = getNote(noteId) ?: return@launch
+            saveOrUpdateNote(
+                id = note.id,
+                title = newTitle,
+                pages = note.pages,
+                timestamp = note.timestamp
+            )
+        }
+    }
 
     fun deleteNote(noteId: Long) {
         viewModelScope.launch {

@@ -3,7 +3,7 @@ package com.example.localnotes.data.repository
 import com.example.localnotes.data.local.NoteDao
 import com.example.localnotes.data.local.NoteEntity
 import com.example.localnotes.data.model.Note
-import com.example.localnotes.data.serialization.StrokeCodec
+import com.example.localnotes.data.serialization.NoteCodec
 import com.example.localnotes.data.validation.NoteValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -21,8 +21,7 @@ class RoomNotesRepository(
     override suspend fun saveNote(input: SaveNoteInput): SaveNoteResult {
         val validation = NoteValidator.validate(
             title = input.title,
-            content = input.content,
-            strokes = input.strokes
+            pages = input.pages
         )
         validation.toSaveNoteResult()?.let { return it }
 
@@ -31,8 +30,7 @@ class RoomNotesRepository(
             val note = Note(
                 id = input.id ?: System.currentTimeMillis(),
                 title = normalizedTitle,
-                content = input.content,
-                strokes = input.strokes,
+                pages = input.pages,
                 timestamp = input.timestamp
             )
             noteDao.upsert(toEntity(note))
@@ -59,8 +57,7 @@ class RoomNotesRepository(
         NoteEntity(
             id = note.id,
             title = note.title,
-            content = note.content,
-            strokesJson = StrokeCodec.encode(note.strokes),
+            pagesJson = NoteCodec.encodePages(note.pages),
             timestamp = note.timestamp
         )
 
@@ -68,8 +65,7 @@ class RoomNotesRepository(
         Note(
             id = entity.id,
             title = entity.title,
-            content = entity.content,
-            strokes = StrokeCodec.decode(entity.strokesJson),
+            pages = NoteCodec.decodePages(entity.pagesJson),
             timestamp = entity.timestamp
         )
 }

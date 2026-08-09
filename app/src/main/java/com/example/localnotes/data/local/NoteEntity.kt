@@ -7,7 +7,6 @@ import androidx.room.PrimaryKey
 data class NoteEntity(
     @PrimaryKey val id: Long,
     val title: String,
-    val content: String,
-    val strokesJson: String,
+    val pagesJson: String,
     val timestamp: Long
 )

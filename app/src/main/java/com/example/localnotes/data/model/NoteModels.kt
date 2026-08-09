@@ -1,7 +1,8 @@
 package com.example.localnotes.data.model
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+enum class StrokeTool {
+    PEN, ERASER
+}
 
 data class SerializedPoint(
     val x: Float,
@@ -13,7 +14,14 @@ data class Stroke(
     val points: List<SerializedPoint>,
     val colorHex: Long,
     val strokeWidth: Float,
+    val tool: StrokeTool = StrokeTool.PEN,
     val timestampMs: Long = 0L
+)
+
+data class NotePage(
+    val strokes: List<Stroke> = emptyList(),
+    val content: String = "",
+    val backgroundColorHex: Long = 0xFFFFFFFF // Default to White
 )
 
 data class AudioMarker(

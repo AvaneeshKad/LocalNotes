@@ -1,6 +1,7 @@
 package com.example.localnotes.data.repository
 
 import com.example.localnotes.data.model.Note
+import com.example.localnotes.data.model.NotePage
 import com.example.localnotes.data.model.Stroke
 import com.example.localnotes.data.validation.NoteValidator
 import kotlinx.coroutines.flow.Flow
@@ -24,10 +25,26 @@ interface NotesRepository {
 data class SaveNoteInput(
     val id: Long? = null,
     val title: String,
-    val content: String,
-    val strokes: List<Stroke> = emptyList(),
+    val pages: List<NotePage> = listOf(NotePage()),
     val timestamp: Long = System.currentTimeMillis()
-)
+) {
+    // Convenience properties for single-page input (backward compatibility)
+    val content: String get() = pages.firstOrNull()?.content ?: ""
+    val strokes: List<Stroke> get() = pages.firstOrNull()?.strokes ?: emptyList()
+    
+    constructor(
+        id: Long? = null,
+        title: String,
+        content: String,
+        strokes: List<Stroke> = emptyList(),
+        timestamp: Long = System.currentTimeMillis()
+    ) : this(
+        id = id,
+        title = title,
+        pages = listOf(NotePage(strokes = strokes, content = content)),
+        timestamp = timestamp
+    )
+}
 
 sealed interface SaveNoteResult {
     data class Success(val note: Note) : SaveNoteResult

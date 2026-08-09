@@ -45,7 +45,7 @@ fun AddNoteScreen(
                     IconButton(
                         onClick = {
                             if (title.isNotBlank() || content.isNotBlank()) {
-                                viewModel.addNote(title, content)
+                                viewModel.addNote(title, listOf(com.example.localnotes.data.model.NotePage(content = content)))
                             }
                             onBack()
                         }

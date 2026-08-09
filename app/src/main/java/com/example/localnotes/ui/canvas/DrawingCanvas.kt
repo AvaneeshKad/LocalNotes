@@ -8,12 +8,16 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import com.example.localnotes.data.model.SerializedPoint
 import com.example.localnotes.data.model.Stroke
+import com.example.localnotes.data.model.StrokeTool
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -21,7 +25,9 @@ fun DrawingCanvas(
     strokes: MutableList<Stroke>,
     selectedColor: Color = Color.Black,
     selectedWidth: Float = 8f,
+    selectedTool: StrokeTool = StrokeTool.PEN,
     currentAudioTimeMs: Long = 0L,
+    enabled: Boolean = true, // Control if drawing is allowed
     modifier: Modifier = Modifier
 ) {
     val currentPoints = remember { mutableStateListOf<SerializedPoint>() }
@@ -29,7 +35,10 @@ fun DrawingCanvas(
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
             .pointerInteropFilter { event ->
+                if (!enabled) return@pointerInteropFilter false
+                
                 val point = SerializedPoint(
                     x = event.x,
                     y = event.y,
@@ -51,8 +60,9 @@ fun DrawingCanvas(
                             strokes.add(
                                 Stroke(
                                     points = currentPoints.toList(),
-                                    colorHex = selectedColor.value.toLong(),
+                                    colorHex = if (selectedTool == StrokeTool.ERASER) Color.Transparent.value.toLong() else selectedColor.value.toLong(),
                                     strokeWidth = selectedWidth,
+                                    tool = selectedTool,
                                     timestampMs = currentAudioTimeMs
                                 )
                             )
@@ -77,10 +87,13 @@ fun DrawingCanvas(
                         )
                     }
                 }
+                
+                val isEraser = stroke.tool == StrokeTool.ERASER
                 drawPath(
                     path = path,
-                    color = Color(stroke.colorHex.toULong()),
-                    style = DrawStroke(width = stroke.strokeWidth)
+                    color = if (isEraser) Color.Transparent else Color(stroke.colorHex.toULong()),
+                    style = DrawStroke(width = stroke.strokeWidth),
+                    blendMode = if (isEraser) BlendMode.Clear else BlendMode.SrcOver
                 )
             }
         }
@@ -97,10 +110,13 @@ fun DrawingCanvas(
                     )
                 }
             }
+            
+            val isEraser = selectedTool == StrokeTool.ERASER
             drawPath(
                 path = livePath,
-                color = selectedColor,
-                style = DrawStroke(width = selectedWidth)
+                color = if (isEraser) Color.Transparent else selectedColor,
+                style = DrawStroke(width = selectedWidth),
+                blendMode = if (isEraser) BlendMode.Clear else BlendMode.SrcOver
             )
         }
     }
